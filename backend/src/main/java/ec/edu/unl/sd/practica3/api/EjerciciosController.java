@@ -1,0 +1,64 @@
+package ec.edu.unl.sd.practica3.api;
+
+import ec.edu.unl.sd.practica3.cajero.BankService;
+import ec.edu.unl.sd.practica3.common.SimulationResult;
+import ec.edu.unl.sd.practica3.estacionamiento.ParkingService;
+import ec.edu.unl.sd.practica3.impresion.PrintCenterService;
+import ec.edu.unl.sd.practica3.productorconsumidor.ProducerConsumerService;
+import ec.edu.unl.sd.practica3.puente.BridgeService;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/ejercicios")
+public class EjerciciosController {
+
+    private final ParkingService parkingService;
+    private final BankService bankService;
+    private final ProducerConsumerService producerConsumerService;
+    private final BridgeService bridgeService;
+    private final PrintCenterService printCenterService;
+
+    public EjerciciosController(
+            ParkingService parkingService,
+            BankService bankService,
+            ProducerConsumerService producerConsumerService,
+            BridgeService bridgeService,
+            PrintCenterService printCenterService) {
+        this.parkingService = parkingService;
+        this.bankService = bankService;
+        this.producerConsumerService = producerConsumerService;
+        this.bridgeService = bridgeService;
+        this.printCenterService = printCenterService;
+    }
+
+    @GetMapping("/1/estacionamiento")
+    public SimulationResult estacionamiento(
+            @RequestParam(defaultValue = "10") int vehiculos,
+            @RequestParam(defaultValue = "4") int permisosSemaforo,
+            @RequestParam(defaultValue = "20") int estadiaMs) {
+        return parkingService.run(vehiculos, permisosSemaforo, estadiaMs);
+    }
+
+    @GetMapping("/2/cajero")
+    public SimulationResult cajero() {
+        return bankService.run();
+    }
+
+    @GetMapping("/3/productor-consumidor")
+    public SimulationResult productorConsumidor() {
+        return producerConsumerService.run();
+    }
+
+    @GetMapping("/4/puente")
+    public SimulationResult puente() {
+        return bridgeService.run();
+    }
+
+    @GetMapping("/5/impresion")
+    public SimulationResult impresion() {
+        return printCenterService.run();
+    }
+}
