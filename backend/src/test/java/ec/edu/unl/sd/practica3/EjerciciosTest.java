@@ -19,7 +19,7 @@ class EjerciciosTest {
     void todosLosEndpointsEstanDisponibles() {
         assertThat(controller.estacionamiento(10, 4, 1).verified()).isTrue();
         assertThat(controller.cajero().verified()).isTrue();
-        assertThat(controller.productorConsumidor().verified()).isTrue();
+        assertThat(controller.productorConsumidor(5, 0).verified()).isTrue();
         assertThat(controller.puente().verified()).isTrue();
         assertThat(controller.impresion().verified()).isTrue();
     }
@@ -44,5 +44,37 @@ class EjerciciosTest {
     void estacionamientoRechazaParametrosNoPositivos() {
         assertThatThrownBy(() -> controller.estacionamiento(0, 4, 1))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void productorConsumidorRespetaCapacidadYConsumeTodo() {
+        var result = controller.productorConsumidor(5, 0);
+
+        assertThat(result.verified()).isTrue();
+        assertThat(result.metrics())
+                .containsEntry("capacidad", 5)
+                .containsEntry("maximoAlmacen", 5)
+                .containsEntry("piezasProducidas", 10)
+                .containsEntry("piezasConsumidas", 10)
+                .containsEntry("piezasRestantes", 0);
+        assertThat(result.events()).hasSize(30);
+    }
+
+    @Test
+    void productorConsumidorDetectaEspaciosEnCeroSinBloquear() {
+        var result = controller.productorConsumidor(0, 0);
+
+        assertThat(result.verified()).isFalse();
+        assertThat(result.summary()).contains("quedaría bloqueada");
+        assertThat(result.events()).anyMatch(event -> event.message().contains("ninguno puede producir"));
+    }
+
+    @Test
+    void productorConsumidorDetectaElementosFalsosSinExtraerDeColaVacia() {
+        var result = controller.productorConsumidor(5, 5);
+
+        assertThat(result.verified()).isFalse();
+        assertThat(result.summary()).contains("cola vacía");
+        assertThat(result.events()).anyMatch(event -> event.message().contains("extraer una pieza inexistente"));
     }
 }

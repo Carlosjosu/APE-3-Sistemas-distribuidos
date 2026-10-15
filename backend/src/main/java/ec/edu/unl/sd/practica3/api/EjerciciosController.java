@@ -48,8 +48,10 @@ public class EjerciciosController {
     }
 
     @GetMapping("/3/productor-consumidor")
-    public SimulationResult productorConsumidor() {
-        return producerConsumerService.run();
+    public SimulationResult productorConsumidor(
+            @RequestParam(defaultValue = "5") int espacios,
+            @RequestParam(defaultValue = "0") int elementos) {
+        return producerConsumerService.run(espacios, elementos);
     }
 
     @GetMapping("/4/puente")

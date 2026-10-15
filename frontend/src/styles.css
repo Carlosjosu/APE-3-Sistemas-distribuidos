@@ -46,6 +46,14 @@ input { border: 1px solid #c8cfdb; border-radius: .4rem; font: inherit; padding:
 .event-meta time { color: #8a93a3; font-size: .75rem; font-variant-numeric: tabular-nums; }
 .event-content p { color: #303b4f; font-size: .9rem; margin: .3rem 0 0; }
 .assignment-space { border: 1px dashed #aeb7c8; border-radius: .5rem; color: #687386; min-height: 220px; padding: 1rem; }
+.semaphore-info { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.25rem 0; }
+.semaphore-info span { background: #f4f6fa; border: 1px solid #e1e5ed; border-radius: .4rem; padding: .65rem .8rem; }
+.semaphore-form { align-items: end; }
+.mutex-value { align-content: center; background: #f4f6fa; border: 1px solid #e1e5ed; border-radius: .4rem; color: #4d586c; display: grid; gap: .4rem; min-height: 2.7rem; padding: .55rem .7rem; }
+.hint { color: #687386; font-size: .9rem; }
+.analysis { background: #f8f9fc; border-left: 4px solid #5267c7; margin: 1.25rem 0; padding: .8rem 1rem; }
+.analysis h3 { margin: 0 0 .7rem; }
+.analysis p { color: #4d586c; line-height: 1.55; }
 @media (max-width: 650px) {
   .form-grid, .metrics { grid-template-columns: 1fr; }
 }
