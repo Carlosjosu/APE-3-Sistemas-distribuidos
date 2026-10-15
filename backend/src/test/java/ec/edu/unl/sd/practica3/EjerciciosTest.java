@@ -45,4 +45,18 @@ class EjerciciosTest {
         assertThatThrownBy(() -> controller.estacionamiento(0, 4, 1))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void productorConsumidorRespetaCapacidadYConsumeTodo() {
+        var result = controller.productorConsumidor();
+
+        assertThat(result.verified()).isTrue();
+        assertThat(result.metrics())
+                .containsEntry("capacidad", 5)
+                .containsEntry("maximoAlmacen", 5)
+                .containsEntry("piezasProducidas", 10)
+                .containsEntry("piezasConsumidas", 10)
+                .containsEntry("piezasRestantes", 0);
+        assertThat(result.events()).hasSize(30);
+    }
 }
