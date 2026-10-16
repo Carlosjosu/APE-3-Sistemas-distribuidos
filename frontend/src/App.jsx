@@ -5,11 +5,14 @@ function App() {
   const [activeId, setActiveId] = useState(1);
   const [params, setParams] = useState({ vehiculos: 10, permisosSemaforo: 4, estadiaMs: 20 });
   const [semaphoreParams, setSemaphoreParams] = useState({ espacios: 5, elementos: 0 });
-  const [printParams, setPrintParams] = useState({
-    documentos: 3,
-    omitir: 'NINGUNO',
-    timeoutMs: 250,
-    trabajoMs: 20,
+  const [bridgeParams, setBridgeParams] = useState({
+    vehiculosNorte: 6,
+    vehiculosSur: 6,
+    cruceMs: 40,
+    llegadaMs: 10,
+    limiteConsecutivos: 3,
+    justo: true,
+    control: true,
   });
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
@@ -29,8 +32,9 @@ function App() {
     setSemaphoreParams({ ...semaphoreParams, [event.target.name]: event.target.value });
   }
 
-  function updatePrintParam(event) {
-    setPrintParams({ ...printParams, [event.target.name]: event.target.value });
+  function updateBridgeParam(event) {
+    const { name, type, checked, value } = event.target;
+    setBridgeParams({ ...bridgeParams, [name]: type === 'checkbox' ? checked : value });
   }
 
   async function runParking() {
@@ -64,12 +68,12 @@ function App() {
     }
   }
 
-  async function runPrintCenter() {
+  async function runBridge() {
     setError('');
     setResult(null);
     try {
-      const query = new URLSearchParams(printParams);
-      const response = await fetch(`/api/ejercicios/5/impresion?${query}`);
+      const query = new URLSearchParams(bridgeParams);
+      const response = await fetch(`/api/ejercicios/4/puente?${query}`);
       if (!response.ok) {
         throw new Error(`El servidor respondió con ${response.status}.`);
       }
@@ -84,7 +88,8 @@ function App() {
       <header>
         <p className="eyebrow">Sistemas Distribuidos · APE 3</p>
         <h1>Sincronización de procesos</h1>
-        </header>
+        <p className="intro">Esqueleto inicial para que cada participante implemente un ejercicio.</p>
+      </header>
 
       <nav className="exercise-tabs" aria-label="Ejercicios">
         {exercises.map((exercise) => (
@@ -141,36 +146,46 @@ function App() {
             {error && <p className="error" role="alert">{error}</p>}
             {result && <ProducerConsumerResult result={result} />}
           </>
-        ) : activeId === 5 ? (
+        ) : activeId === 4 ? (
           <>
-            <p>Los documentos pasan por diseño, revisión e impresión en ese orden. Omite una señal para observar cómo se interrumpe el relevo.</p>
+            <p>El puente admite una sola dirección activa a la vez. Varios vehículos pueden cruzar en el mismo sentido, pero nunca hacia el norte y hacia el sur simultáneamente.</p>
             <div className="form-grid">
               <label>
-                Documentos
-                <input name="documentos" type="number" min="1" value={printParams.documentos} onChange={updatePrintParam} />
+                Vehículos hacia el norte
+                <input name="vehiculosNorte" type="number" min="0" max="50" value={bridgeParams.vehiculosNorte} onChange={updateBridgeParam} />
               </label>
               <label>
-                Señal a omitir
-                <select name="omitir" value={printParams.omitir} onChange={updatePrintParam}>
-                  <option value="NINGUNO">Ninguna (secuencia correcta)</option>
-                  <option value="REVISION">Diseño → revisión</option>
-                  <option value="IMPRESION">Revisión → impresión</option>
-                  <option value="DISENO">Impresión → diseño</option>
-                </select>
+                Vehículos hacia el sur
+                <input name="vehiculosSur" type="number" min="0" max="50" value={bridgeParams.vehiculosSur} onChange={updateBridgeParam} />
               </label>
               <label>
-                Tiempo de espera (ms)
-                <input name="timeoutMs" type="number" min="1" value={printParams.timeoutMs} onChange={updatePrintParam} />
+                Tiempo de cruce (ms)
+                <input name="cruceMs" type="number" min="1" value={bridgeParams.cruceMs} onChange={updateBridgeParam} />
               </label>
               <label>
-                Trabajo por etapa (ms)
-                <input name="trabajoMs" type="number" min="0" value={printParams.trabajoMs} onChange={updatePrintParam} />
+                Separación de llegadas (ms)
+                <input name="llegadaMs" type="number" min="1" value={bridgeParams.llegadaMs} onChange={updateBridgeParam} />
+              </label>
+              <label>
+                Límite de vehículos seguidos
+                <input name="limiteConsecutivos" type="number" min="1" value={bridgeParams.limiteConsecutivos} disabled={!bridgeParams.justo} onChange={updateBridgeParam} />
+              </label>
+              <div className="mutex-value"><strong>Mutex + Condition</strong><span>{bridgeParams.control ? 'Activos' : 'Eliminados'}</span></div>
+            </div>
+            <div className="toggle-row">
+              <label className="toggle">
+                <input name="justo" type="checkbox" checked={bridgeParams.justo} onChange={updateBridgeParam} />
+                Reto: evitar que una dirección monopolice el puente
+              </label>
+              <label className="toggle">
+                <input name="control" type="checkbox" checked={bridgeParams.control} onChange={updateBridgeParam} />
+                Usar mutex y condición (desmarca para ver el conflicto)
               </label>
             </div>
-            <p className="hint">Secuencia esperada: D1 → R1 → I1 → D2 → R2 → I2… Una señal omitida se detecta por timeout, sin dejar la aplicación bloqueada.</p>
-            <button className="primary" onClick={runPrintCenter}>Ejecutar centro de impresión</button>
+            <p className="hint">Con el reto desactivado se ejecuta el algoritmo base del pseudocódigo: si los vehículos de un sentido llegan sin pausa, el otro sentido espera hasta que terminen todos.</p>
+            <button className="primary" onClick={runBridge}>Ejecutar simulación</button>
             {error && <p className="error" role="alert">{error}</p>}
-            {result && <PrintCenterResult result={result} />}
+            {result && <BridgeResult result={result} />}
           </>
         ) : (
           <div className="assignment-space">
@@ -258,22 +273,29 @@ function ProducerConsumerResult({ result }) {
   );
 }
 
-function PrintCenterResult({ result }) {
+function BridgeResult({ result }) {
+  const m = result.metrics;
   return (
     <div className="simulation-result">
       <div className={result.verified ? 'verdict success' : 'verdict failure'}>
-        {result.verified ? 'Relevo completado' : 'Relevo interrumpido'}
+        {result.verified ? 'Nunca cruzaron sentidos opuestos' : 'Conflicto: sentidos opuestos a la vez'}
       </div>
       <p>{result.summary}</p>
       <dl className="metrics">
-        <div><dt>Señal omitida</dt><dd>{result.metrics.signalOmitido}</dd></div>
-        <div><dt>Etapas ejecutadas</dt><dd>{result.metrics.etapasEjecutadas} / {result.metrics.etapasEsperadas}</dd></div>
-        <div><dt>Hilos bloqueados</dt><dd>{result.metrics.hilosBloqueados}</dd></div>
-        <div><dt>Documentos</dt><dd>{result.metrics.documentos}</dd></div>
+        <div><dt>Modo</dt><dd>{m.modo}</dd></div>
+        <div><dt>Conflictos detectados</dt><dd>{m.conflictosDetectados}</dd></div>
+        <div><dt>Máx. simultáneos norte / sur</dt><dd>{m.maximoNorteSimultaneo} / {m.maximoSurSimultaneo}</dd></div>
+        <div><dt>Cambios de dirección</dt><dd>{m.cambiosDeDireccion}</dd></div>
+        <div><dt>Norte que cruzaron antes del primer sur</dt><dd>{m.norteAntesDelPrimerSur}</dd></div>
+        <div><dt>Espera máx. norte / sur</dt><dd>{m.esperaMaxNorteMs} ms / {m.esperaMaxSurMs} ms</dd></div>
+        <div><dt>Vehículos atendidos</dt><dd>{m.vehiculosAtendidos}</dd></div>
+        <div><dt>Tiempo concurrente</dt><dd>{m.tiempoConcurrenteMs} ms</dd></div>
+        <div><dt>Tiempo secuencial estimado</dt><dd>{m.tiempoSecuencialEstimadoMs} ms</dd></div>
       </dl>
       <section className="analysis">
-        <h3>Orden observado</h3>
-        <p className="observed-order">{result.metrics.ordenObservado || 'No se completó ninguna etapa.'}</p>
+        <h3>Análisis de inanición</h3>
+        <p><strong>Algoritmo base:</strong> mientras haya al menos un vehículo cruzando hacia el norte, la dirección sigue siendo NORTE y el contador nunca llega a 0. Si llegan vehículos al norte de forma continua, los del sur esperan indefinidamente: sufren inanición.</p>
+        <p><strong>Solución (reto):</strong> se limita cuántos vehículos seguidos del mismo sentido pueden entrar cuando el sentido contrario está esperando. Al vaciarse el puente, el turno pasa al sentido que esperaba.</p>
       </section>
       <details className="log-details">
         <summary><span>Bitácora de ejecución</span><span className="event-count">{result.events.length} eventos</span></summary>
@@ -282,10 +304,7 @@ function PrintCenterResult({ result }) {
             <li className="event-item" key={`${event.timestamp}-${index}`}>
               <span className="event-marker">{index + 1}</span>
               <div className="event-content">
-                <div className="event-meta">
-                  <span className="event-thread">{event.thread}</span>
-                  <time dateTime={event.timestamp}>{formatEventTime(event.timestamp)}</time>
-                </div>
+                <div className="event-meta"><span className="event-thread">{event.thread}</span><time dateTime={event.timestamp}>{formatEventTime(event.timestamp)}</time></div>
                 <p>{event.message}</p>
               </div>
             </li>

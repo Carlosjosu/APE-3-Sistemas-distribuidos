@@ -3,8 +3,6 @@ package ec.edu.unl.sd.practica3.common;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 
 public final class Sim {
 
@@ -34,15 +32,6 @@ public final class Sim {
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("La simulación fue interrumpida.", exception);
-        }
-    }
-
-    public static boolean tryAcquire(Semaphore semaphore, long timeoutMs) {
-        try {
-            return semaphore.tryAcquire(timeoutMs, TimeUnit.MILLISECONDS);
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("El hilo fue interrumpido mientras esperaba un semáforo.", exception);
         }
     }
 

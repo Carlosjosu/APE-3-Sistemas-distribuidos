@@ -5,11 +5,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ec.edu.unl.sd.practica3.api.EjerciciosController;
 import ec.edu.unl.sd.practica3.estacionamiento.ParkingService;
-import ec.edu.unl.sd.practica3.impresion.PrintCenterService.SignalOmitido;
-import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+
 
 @SpringBootTest
 class EjerciciosTest {
@@ -22,8 +21,8 @@ class EjerciciosTest {
         assertThat(controller.estacionamiento(10, 4, 1).verified()).isTrue();
         assertThat(controller.cajero().verified()).isTrue();
         assertThat(controller.productorConsumidor(5, 0).verified()).isTrue();
-        assertThat(controller.puente().verified()).isTrue();
-        assertThat(controller.impresion(3, SignalOmitido.NINGUNO, 100, 0).verified()).isTrue();
+        assertThat(controller.puente(6, 6, 40, 10, true, 3, true).verified()).isTrue();      
+        assertThat(controller.impresion().verified()).isTrue();
     }
 
     @Test
@@ -80,46 +79,39 @@ class EjerciciosTest {
         assertThat(result.events()).anyMatch(event -> event.message().contains("extraer una pieza inexistente"));
     }
 
-    @Test
-    void impresionRespetaElOrden() {
-        var result = controller.impresion(3, SignalOmitido.NINGUNO, 100, 1);
+        @Test
+    void puenteNuncaTieneSentidosOpuestosSimultaneos() {
+        var result = controller.puente(6, 6, 40, 10, true, 3, true);
 
         assertThat(result.verified()).isTrue();
         assertThat(result.metrics())
-                .containsEntry("documentos", 3)
-                .containsEntry("signalOmitido", "NINGUNO")
-                .containsEntry("etapasEsperadas", 9)
-                .containsEntry("etapasEjecutadas", 9)
-                .containsEntry("hilosBloqueados", 0)
-                .containsEntry("ordenObservado", "D1 R1 I1 D2 R2 I2 D3 R3 I3");
+                .containsEntry("conflictosDetectados", 0)
+                .containsEntry("vehiculosAtendidos", "12 / 12");
     }
 
     @Test
-    void omitirUnSignalBloqueaElCiclo() {
-        for (SignalOmitido signal : List.of(
-                SignalOmitido.REVISION,
-                SignalOmitido.IMPRESION,
-                SignalOmitido.DISENO)) {
-            var result = controller.impresion(3, signal, 50, 1);
+    void puenteSinLimitePermiteMonopolioYConLimiteNo() {
+        var base = controller.puente(6, 6, 40, 10, false, 3, true);
+        var justo = controller.puente(6, 6, 40, 10, true, 3, true);
 
-            assertThat(result.verified()).as("signal omitido: %s", signal).isFalse();
-            assertThat(result.metrics())
-                    .as("signal omitido: %s", signal)
-                    .containsEntry("signalOmitido", signal.name())
-                    .containsEntry("hilosBloqueados", 3);
-            assertThat((int) result.metrics().get("etapasEjecutadas"))
-                    .as("signal omitido: %s", signal)
-                    .isLessThan(9);
-        }
+        assertThat(base.verified()).isTrue();
+        assertThat(base.metrics()).containsEntry("norteAntesDelPrimerSur", 6);
+        assertThat((int) justo.metrics().get("norteAntesDelPrimerSur")).isLessThan(6);
     }
 
     @Test
-    void impresionRechazaParametrosInvalidos() {
-        assertThatThrownBy(() -> controller.impresion(0, SignalOmitido.NINGUNO, 50, 1))
+    void puenteSinControlProduceConflictos() {
+        var result = controller.puente(6, 6, 40, 10, true, 3, false);
+
+        assertThat(result.verified()).isFalse();
+        assertThat((int) result.metrics().get("conflictosDetectados")).isPositive();
+    }
+
+    @Test
+    void puenteRechazaParametrosInvalidos() {
+        assertThatThrownBy(() -> controller.puente(0, 0, 40, 10, true, 3, true))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> controller.impresion(3, SignalOmitido.NINGUNO, 0, 1))
-                .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> controller.impresion(3, SignalOmitido.NINGUNO, 50, -1))
+        assertThatThrownBy(() -> controller.puente(2, 2, 0, 10, true, 3, true))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

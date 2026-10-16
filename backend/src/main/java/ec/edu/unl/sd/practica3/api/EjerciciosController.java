@@ -54,17 +54,21 @@ public class EjerciciosController {
         return producerConsumerService.run(espacios, elementos);
     }
 
-    @GetMapping("/4/puente")
-    public SimulationResult puente() {
-        return bridgeService.run();
+        @GetMapping("/4/puente")
+    public SimulationResult puente(
+            @RequestParam(defaultValue = "6") int vehiculosNorte,
+            @RequestParam(defaultValue = "6") int vehiculosSur,
+            @RequestParam(defaultValue = "40") int cruceMs,
+            @RequestParam(defaultValue = "10") int llegadaMs,
+            @RequestParam(defaultValue = "true") boolean justo,
+            @RequestParam(defaultValue = "3") int limiteConsecutivos,
+            @RequestParam(defaultValue = "true") boolean control) {
+        return bridgeService.run(
+                vehiculosNorte, vehiculosSur, cruceMs, llegadaMs, justo, limiteConsecutivos, control);
     }
 
     @GetMapping("/5/impresion")
-    public SimulationResult impresion(
-            @RequestParam(defaultValue = "3") int documentos,
-            @RequestParam(defaultValue = "NINGUNO") PrintCenterService.SignalOmitido omitir,
-            @RequestParam(defaultValue = "250") long timeoutMs,
-            @RequestParam(defaultValue = "20") long trabajoMs) {
-        return printCenterService.run(documentos, omitir, timeoutMs, trabajoMs);
+    public SimulationResult impresion() {
+        return printCenterService.run();
     }
 }
