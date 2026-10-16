@@ -18,7 +18,7 @@ h1 { margin: 0; font-size: clamp(2rem, 5vw, 3rem); }
 .panel h2 { margin-top: 0; }
 .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1.5rem 0; }
 label { color: #4d586c; display: grid; font-size: .9rem; font-weight: 600; gap: .4rem; }
-input { border: 1px solid #c8cfdb; border-radius: .4rem; font: inherit; padding: .65rem; width: 100%; }
+input, select { background: white; border: 1px solid #c8cfdb; border-radius: .4rem; font: inherit; padding: .65rem; width: 100%; }
 .primary { background: #172033; color: white; padding: .7rem 1rem; }
 .primary:hover { background: #2c3b5b; }
 .error { color: #b42318; }
@@ -54,6 +54,7 @@ input { border: 1px solid #c8cfdb; border-radius: .4rem; font: inherit; padding:
 .analysis { background: #f8f9fc; border-left: 4px solid #5267c7; margin: 1.25rem 0; padding: .8rem 1rem; }
 .analysis h3 { margin: 0 0 .7rem; }
 .analysis p { color: #4d586c; line-height: 1.55; }
+.observed-order { background: #172033; border-radius: .4rem; color: #d8e2ff !important; font-family: ui-monospace, monospace; padding: .75rem; }
 @media (max-width: 650px) {
   .form-grid, .metrics { grid-template-columns: 1fr; }
 }

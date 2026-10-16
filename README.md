@@ -3,9 +3,10 @@
 Práctica 3 de Sistemas Distribuidos: sincronización de procesos con Java,
 Spring Boot, React y Vite.
 
-Actualmente el ejercicio 1, **Estacionamiento**, cuenta con una simulación
-funcional. Los ejercicios 2–5 tienen su espacio preparado para futuras
-implementaciones.
+Actualmente los ejercicios 1 (**Estacionamiento**), 3
+(**Productor-Consumidor**) y 5 (**Centro de impresión**) cuentan con
+simulaciones funcionales. Los ejercicios 2 y 4 conservan su espacio para
+futuras implementaciones.
 
 ## Requisitos
 
@@ -116,6 +117,32 @@ Escenarios de referencia:
 - `permisosSemaforo=4`: respeta la capacidad física de cuatro vehículos.
 - `permisosSemaforo=1`: permite un vehículo a la vez.
 - `permisosSemaforo=10`: permite observar la violación de la capacidad física.
+
+## Ejercicio 5: Centro de impresión
+
+La simulación ordena las etapas de diseño (D), revisión (R) e impresión (I)
+mediante semáforos. Puede ejecutarse desde la interfaz o usando:
+
+```text
+GET http://localhost:8080/api/ejercicios/5/impresion
+```
+
+Parámetros opcionales:
+
+```text
+?documentos=3&omitir=NINGUNO&timeoutMs=250&trabajoMs=20
+```
+
+`omitir` acepta `NINGUNO`, `REVISION`, `IMPRESION` o `DISENO`. Para probar el
+relevo completo usa `NINGUNO`; los otros valores omiten una señal entre etapas
+y permiten observar el bloqueo controlado por timeout. La respuesta incluye
+el orden observado, las etapas ejecutadas, los hilos bloqueados y la bitácora.
+
+Ejemplo para omitir la señal de revisión:
+
+```bash
+curl "http://localhost:8080/api/ejercicios/5/impresion?documentos=3&omitir=REVISION&timeoutMs=250&trabajoMs=20"
+```
 
 ## Estructura principal
 
