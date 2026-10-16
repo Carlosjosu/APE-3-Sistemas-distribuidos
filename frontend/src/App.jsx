@@ -4,6 +4,14 @@ import { exercises } from './exercises';
 function App() {
   const [activeId, setActiveId] = useState(1);
   const [params, setParams] = useState({ vehiculos: 10, permisosSemaforo: 4, estadiaMs: 20 });
+  const [bankParams, setBankParams] = useState({
+    saldoInicial: 1000,
+    retiroProceso1: 300,
+    retiroProceso2: 250,
+    depositoProceso3: 200,
+    usarMutex: true,
+    repeticiones: 50,
+  });
   const [semaphoreParams, setSemaphoreParams] = useState({ espacios: 5, elementos: 0 });
   const [bridgeParams, setBridgeParams] = useState({
     vehiculosNorte: 6,
@@ -58,6 +66,25 @@ function App() {
         throw new Error(`El servidor respondió con ${response.status}.`);
       }
       setResult(await response.json());
+    } catch (requestError) {
+      setError(`No se pudo ejecutar la simulación: ${requestError.message}`);
+    }
+  }
+
+  async function runBank() {
+    setError('');
+    setResult(null);
+    try {
+      const query = new URLSearchParams(bankParams);
+      const response = await fetch(`/api/ejercicios/2/cajero?${query}`);
+      if (!response.ok) {
+        throw new Error(`El servidor respondió con ${response.status}.`);
+      }
+      const bankResult = await response.json();
+      if (!isBankResult(bankResult)) {
+        throw new Error('La respuesta del cajero no tiene el formato esperado.');
+      }
+      setResult(bankResult);
     } catch (requestError) {
       setError(`No se pudo ejecutar la simulación: ${requestError.message}`);
     }
@@ -151,6 +178,40 @@ function App() {
             <button className="primary" onClick={runParking}>Ejecutar simulación</button>
             {error && <p className="error" role="alert">{error}</p>}
             {result && <SimulationResult result={result} />}
+          </>
+        ) : activeId === 2 ? (
+          <>
+            <p>Ingresa el saldo y las operaciones de los tres procesos. El mutex protege cada lectura y actualización del saldo compartido.</p>
+            <div className="form-grid bank-form">
+              <label>
+                Saldo inicial ($)
+                <input name="saldoInicial" type="number" min="0" value={bankParams.saldoInicial} onChange={updateBankParam} />
+              </label>
+              <label>
+                Retiro proceso 1 ($)
+                <input name="retiroProceso1" type="number" min="0" value={bankParams.retiroProceso1} onChange={updateBankParam} />
+              </label>
+              <label>
+                Retiro proceso 2 ($)
+                <input name="retiroProceso2" type="number" min="0" value={bankParams.retiroProceso2} onChange={updateBankParam} />
+              </label>
+              <label>
+                Depósito proceso 3 ($)
+                <input name="depositoProceso3" type="number" min="0" value={bankParams.depositoProceso3} onChange={updateBankParam} />
+              </label>
+              <label>
+                Repeticiones
+                <input name="repeticiones" type="number" min="1" value={bankParams.repeticiones} onChange={updateBankParam} />
+              </label>
+              <label className="checkbox-label">
+                <input name="usarMutex" type="checkbox" checked={bankParams.usarMutex} onChange={updateBankParam} />
+                Usar mutex
+              </label>
+            </div>
+            <p className="hint">Desactiva el mutex para comparar el resultado y observar la condición de carrera.</p>
+            <button className="primary" onClick={runBank}>Ejecutar cajero</button>
+            {error && <p className="error" role="alert">{error}</p>}
+            {result && <BankResult result={result} />}
           </>
         ) : activeId === 3 ? (
           <>
@@ -329,7 +390,8 @@ function ProducerConsumerResult({ result }) {
 }
 
 function BridgeResult({ result }) {
-  const m = result.metrics;
+  const metrics = result.metrics;
+
   return (
     <div className="simulation-result">
       <div className={result.verified ? 'verdict success' : 'verdict failure'}>
@@ -337,24 +399,72 @@ function BridgeResult({ result }) {
       </div>
       <p>{result.summary}</p>
       <dl className="metrics">
-        <div><dt>Modo</dt><dd>{m.modo}</dd></div>
-        <div><dt>Conflictos detectados</dt><dd>{m.conflictosDetectados}</dd></div>
-        <div><dt>Máx. simultáneos norte / sur</dt><dd>{m.maximoNorteSimultaneo} / {m.maximoSurSimultaneo}</dd></div>
-        <div><dt>Cambios de dirección</dt><dd>{m.cambiosDeDireccion}</dd></div>
-        <div><dt>Norte que cruzaron antes del primer sur</dt><dd>{m.norteAntesDelPrimerSur}</dd></div>
-        <div><dt>Espera máx. norte / sur</dt><dd>{m.esperaMaxNorteMs} ms / {m.esperaMaxSurMs} ms</dd></div>
-        <div><dt>Vehículos atendidos</dt><dd>{m.vehiculosAtendidos}</dd></div>
-        <div><dt>Tiempo concurrente</dt><dd>{m.tiempoConcurrenteMs} ms</dd></div>
-        <div><dt>Tiempo secuencial estimado</dt><dd>{m.tiempoSecuencialEstimadoMs} ms</dd></div>
+        <div><dt>Modo</dt><dd>{metrics.modo}</dd></div>
+        <div><dt>Conflictos detectados</dt><dd>{metrics.conflictosDetectados}</dd></div>
+        <div><dt>Máx. simultáneos norte / sur</dt><dd>{metrics.maximoNorteSimultaneo} / {metrics.maximoSurSimultaneo}</dd></div>
+        <div><dt>Cambios de dirección</dt><dd>{metrics.cambiosDeDireccion}</dd></div>
+        <div><dt>Norte antes del primer sur</dt><dd>{metrics.norteAntesDelPrimerSur}</dd></div>
+        <div><dt>Espera máx. norte / sur</dt><dd>{metrics.esperaMaxNorteMs} ms / {metrics.esperaMaxSurMs} ms</dd></div>
+        <div><dt>Vehículos atendidos</dt><dd>{metrics.vehiculosAtendidos}</dd></div>
+        <div><dt>Tiempo de ejecución</dt><dd>{metrics.tiempoConcurrenteMs} ms</dd></div>
+        <div><dt>Tiempo secuencial estimado</dt><dd>{metrics.tiempoSecuencialEstimadoMs} ms</dd></div>
       </dl>
       <section className="analysis">
         <h3>Análisis de inanición</h3>
         <p><strong>Algoritmo base:</strong> mientras haya al menos un vehículo cruzando hacia el norte, la dirección sigue siendo NORTE y el contador nunca llega a 0. Si llegan vehículos al norte de forma continua, los del sur esperan indefinidamente: sufren inanición.</p>
-        <p><strong>Solución (reto):</strong> se limita cuántos vehículos seguidos del mismo sentido pueden entrar cuando el sentido contrario está esperando. Al vaciarse el puente, el turno pasa al sentido que esperaba.</p>
+        <p><strong>Solución:</strong> se limita cuántos vehículos seguidos del mismo sentido pueden entrar cuando el sentido contrario está esperando. Al vaciarse el puente, el turno pasa al sentido que esperaba.</p>
       </section>
       <details className="log-details">
         <summary><span>Bitácora de ejecución</span><span className="event-count">{result.events.length} eventos</span></summary>
         <ol className="events">
+          {result.events.map((event, index) => (
+            <li className="event-item" key={`${event.timestamp}-${index}`}>
+              <span className="event-marker">{index + 1}</span>
+              <div className="event-content">
+                <div className="event-meta"><span className="event-thread">{event.thread}</span><time dateTime={event.timestamp}>{formatEventTime(event.timestamp)}</time></div>
+                <p>{event.message}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </details>
+    </div>
+  );
+}
+
+function isBankResult(value) {
+  return Boolean(
+    value
+      && typeof value === 'object'
+      && typeof value.verified === 'boolean'
+      && typeof value.summary === 'string'
+      && value.metrics
+      && typeof value.metrics === 'object'
+      && Array.isArray(value.events),
+  );
+}
+
+function BankResult({ result }) {
+  const metrics = result.metrics;
+  const correctas = metrics.ejecucionesCorrectas ?? 0;
+  const repeticiones = metrics.repeticiones ?? 0;
+
+  return (
+    <div className="simulation-result">
+      <div className={result.verified ? 'verdict success' : 'verdict failure'}>
+        {result.verified ? 'Saldo protegido' : 'Condición de carrera detectada'}
+      </div>
+      <p>{result.summary}</p>
+      <dl className="metrics">
+        <div><dt>Saldo esperado</dt><dd>${metrics.saldoEsperado ?? '-'}</dd></div>
+        <div><dt>Ejecuciones correctas</dt><dd>{correctas} / {repeticiones}</dd></div>
+        <div><dt>Mutex</dt><dd>{metrics.usaMutex ? 'Activo' : 'Desactivado'}</dd></div>
+        <div><dt>Saldos finales observados</dt><dd>{metrics.saldosFinales ?? '-'}</dd></div>
+        <div><dt>Tiempo de ejecución</dt><dd>{metrics.tiempoConcurrenteMs ?? '-'} ms</dd></div>
+      </dl>
+      <details className="log-details">
+        <summary><span>Bitácora de ejecución</span><span className="event-count">{result.events.length} eventos</span></summary>
+        <ol className="events"> 
           {result.events.map((event, index) => (
             <li className="event-item" key={`${event.timestamp}-${index}`}>
               <span className="event-marker">{index + 1}</span>

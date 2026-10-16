@@ -49,6 +49,9 @@ input, select { background: white; border: 1px solid #c8cfdb; border-radius: .4r
 .semaphore-info { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1.25rem 0; }
 .semaphore-info span { background: #f4f6fa; border: 1px solid #e1e5ed; border-radius: .4rem; padding: .65rem .8rem; }
 .semaphore-form { align-items: end; }
+.bank-form { grid-template-columns: repeat(3, 1fr); }
+.checkbox-label { align-items: center; display: flex; gap: .55rem; min-height: 2.7rem; }
+.checkbox-label input { width: auto; }
 .mutex-value { align-content: center; background: #f4f6fa; border: 1px solid #e1e5ed; border-radius: .4rem; color: #4d586c; display: grid; gap: .4rem; min-height: 2.7rem; padding: .55rem .7rem; }
 .hint { color: #687386; font-size: .9rem; }
 .analysis { background: #f8f9fc; border-left: 4px solid #5267c7; margin: 1.25rem 0; padding: .8rem 1rem; }

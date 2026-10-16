@@ -144,6 +144,25 @@ Ejemplo para omitir la señal de revisión:
 curl "http://localhost:8080/api/ejercicios/5/impresion?documentos=3&omitir=REVISION&timeoutMs=250&trabajoMs=20"
 ```
 
+## Ejercicio 2: Cajero automático compartido
+
+La simulación recibe sus datos desde el formulario del frontend o mediante el
+endpoint:
+
+```text
+GET http://localhost:8080/api/ejercicios/2/cajero
+```
+
+Parámetros opcionales:
+
+```text
+?saldoInicial=1000&retiroProceso1=300&retiroProceso2=250&depositoProceso3=200&usarMutex=true&repeticiones=50
+```
+
+Con `usarMutex=true`, el saldo esperado se conserva en todas las ejecuciones.
+Con `usarMutex=false`, la bitácora y el resumen permiten observar la condición
+de carrera producida al consultar y actualizar el saldo simultáneamente.
+
 ## Estructura principal
 
 ```text

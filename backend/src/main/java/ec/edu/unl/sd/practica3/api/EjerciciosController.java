@@ -43,6 +43,22 @@ public class EjerciciosController {
     }
 
     @GetMapping("/2/cajero")
+    public SimulationResult cajero(
+            @RequestParam(defaultValue = "1000") int saldoInicial,
+            @RequestParam(defaultValue = "300") int retiroProceso1,
+            @RequestParam(defaultValue = "250") int retiroProceso2,
+            @RequestParam(defaultValue = "200") int depositoProceso3,
+            @RequestParam(defaultValue = "true") boolean usarMutex,
+            @RequestParam(defaultValue = "50") int repeticiones) {
+        return bankService.run(
+                saldoInicial,
+                retiroProceso1,
+                retiroProceso2,
+                depositoProceso3,
+                usarMutex,
+                repeticiones);
+    }
+
     public SimulationResult cajero() {
         return bankService.run();
     }

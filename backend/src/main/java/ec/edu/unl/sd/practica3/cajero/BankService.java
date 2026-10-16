@@ -21,15 +21,28 @@ public class BankService {
     private static final int RETIRO_PROCESO_1 = 300;
     private static final int RETIRO_PROCESO_2 = 250;
     private static final int DEPOSITO_PROCESO_3 = 200;
-    private static final int SALDO_ESPERADO = 650;
     private static final int REPETICIONES_POR_DEFECTO = 50;
     private static final long PAUSA_NANOS = 300_000;
 
     public SimulationResult run() {
-        return run(true, REPETICIONES_POR_DEFECTO);
+        return run(SALDO_INICIAL, RETIRO_PROCESO_1, RETIRO_PROCESO_2,
+                DEPOSITO_PROCESO_3, true, REPETICIONES_POR_DEFECTO);
     }
 
     public SimulationResult run(boolean usarMutex, int repeticiones) {
+        return run(SALDO_INICIAL, RETIRO_PROCESO_1, RETIRO_PROCESO_2,
+                DEPOSITO_PROCESO_3, usarMutex, repeticiones);
+    }
+
+    public SimulationResult run(
+            int saldoInicial,
+            int retiroProceso1,
+            int retiroProceso2,
+            int depositoProceso3,
+            boolean usarMutex,
+            int repeticiones) {
+        validarParametros(saldoInicial, retiroProceso1, retiroProceso2, depositoProceso3, repeticiones);
+        int saldoEsperado = saldoInicial - retiroProceso1 - retiroProceso2 + depositoProceso3;
         if (repeticiones <= 0) {
             throw new IllegalArgumentException("repeticiones debe ser mayor que cero.");
         }
@@ -40,23 +53,23 @@ public class BankService {
         long startNanos = System.nanoTime();
 
         for (int repeticion = 1; repeticion <= repeticiones; repeticion++) {
-            Cuenta cuenta = new Cuenta(SALDO_INICIAL);
+            Cuenta cuenta = new Cuenta(saldoInicial);
             List<EventLog> events = Collections.synchronizedList(new ArrayList<>());
             boolean registrarEventos = repeticion == 1;
 
             List<Thread> processes = List.of(
                     Sim.start("proceso-1", () -> retirar(
-                            cuenta, 1, RETIRO_PROCESO_1, usarMutex, events, registrarEventos)),
+                            cuenta, 1, retiroProceso1, usarMutex, events, registrarEventos)),
                     Sim.start("proceso-2", () -> retirar(
-                            cuenta, 2, RETIRO_PROCESO_2, usarMutex, events, registrarEventos)),
+                            cuenta, 2, retiroProceso2, usarMutex, events, registrarEventos)),
                     Sim.start("proceso-3", () -> depositar(
-                            cuenta, 3, DEPOSITO_PROCESO_3, usarMutex, events, registrarEventos)));
+                            cuenta, 3, depositoProceso3, usarMutex, events, registrarEventos)));
 
             Sim.joinAll(processes);
 
             int saldoFinal = cuenta.saldo;
             saldosFinales.merge(saldoFinal, 1, Integer::sum);
-            if (saldoFinal == SALDO_ESPERADO) {
+            if (saldoFinal == saldoEsperado) {
                 correctas++;
             }
             if (registrarEventos) {
@@ -73,11 +86,30 @@ public class BankService {
                 Sim.metrics(
                         "usaMutex", usarMutex,
                         "repeticiones", repeticiones,
-                        "saldoEsperado", SALDO_ESPERADO,
+                        "saldoInicial", saldoInicial,
+                        "retiroProceso1", retiroProceso1,
+                        "retiroProceso2", retiroProceso2,
+                        "depositoProceso3", depositoProceso3,
+                        "saldoEsperado", saldoEsperado,
                         "ejecucionesCorrectas", correctas,
                         "saldosFinales", saldosFinales.toString(),
                         "tiempoConcurrenteMs", Sim.elapsedMs(startNanos)),
                 List.copyOf(firstRunEvents));
+    }
+
+    private static void validarParametros(
+            int saldoInicial,
+            int retiroProceso1,
+            int retiroProceso2,
+            int depositoProceso3,
+            int repeticiones) {
+        if (saldoInicial < 0 || retiroProceso1 < 0 || retiroProceso2 < 0
+                || depositoProceso3 < 0) {
+            throw new IllegalArgumentException("Los montos no pueden ser negativos.");
+        }
+        if (repeticiones <= 0) {
+            throw new IllegalArgumentException("repeticiones debe ser mayor que cero.");
+        }
     }
 
     private void retirar(

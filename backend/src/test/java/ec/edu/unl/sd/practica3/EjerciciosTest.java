@@ -44,6 +44,24 @@ class EjerciciosTest {
     }
 
     @Test
+    void cajeroAceptaParametrosDesdeLaSolicitud() {
+        var result = controller.cajero(2000, 400, 300, 100, true, 3);
+
+        assertThat(result.verified()).isTrue();
+        assertThat(result.metrics())
+                .containsEntry("saldoInicial", 2000)
+                .containsEntry("saldoEsperado", 1400)
+                .containsEntry("ejecucionesCorrectas", 3);
+    }
+
+    @Test
+    void cajeroSinMutexDetectaCondicionDeCarrera() {
+        var result = controller.cajero(1000, 300, 250, 200, false, 50);
+
+        assertThat(result.verified()).isFalse();
+    }
+
+    @Test
     void estacionamientoRechazaParametrosNoPositivos() {
         assertThatThrownBy(() -> controller.estacionamiento(0, 4, 1))
                 .isInstanceOf(IllegalArgumentException.class);
