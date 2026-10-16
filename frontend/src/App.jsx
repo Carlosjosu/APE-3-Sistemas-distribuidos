@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { Component, useState } from 'react';
 import { exercises } from './exercises';
 
 function App() {
@@ -30,7 +30,7 @@ function App() {
   });
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const activeExercise = exercises.find(({ id }) => id === activeId);
+  const activeExercise = exercises.find(({ id }) => id === activeId) ?? exercises[0];
 
   function selectExercise(id) {
     setActiveId(id);
@@ -44,6 +44,11 @@ function App() {
 
   function updateSemaphoreParam(event) {
     setSemaphoreParams({ ...semaphoreParams, [event.target.name]: event.target.value });
+  }
+
+  function updateBankParam(event) {
+    const { name, type, checked, value } = event.target;
+    setBankParams({ ...bankParams, [name]: type === 'checkbox' ? checked : value });
   }
 
   function updateBridgeParam(event) {
@@ -527,4 +532,36 @@ function formatEventTime(timestamp) {
   }).format(new Date(timestamp));
 }
 
-export default App;
+class AppErrorBoundary extends Component {
+  state = { error: null };
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <main className="app">
+          <section className="panel">
+            <h1>No se pudo mostrar este ejercicio</h1>
+            <p className="error">{this.state.error.message}</p>
+            <button className="primary" onClick={() => window.location.reload()}>
+              Recargar aplicación
+            </button>
+          </section>
+        </main>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+export default function AppRoot() {
+  return (
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
+  );
+}
