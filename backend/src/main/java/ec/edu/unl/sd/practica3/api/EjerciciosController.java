@@ -68,7 +68,11 @@ public class EjerciciosController {
     }
 
     @GetMapping("/5/impresion")
-    public SimulationResult impresion() {
-        return printCenterService.run();
+    public SimulationResult impresion(
+            @RequestParam(defaultValue = "3") int documentos,
+            @RequestParam(defaultValue = "NINGUNO") PrintCenterService.SignalOmitido omitir,
+            @RequestParam(defaultValue = "250") long timeoutMs,
+            @RequestParam(defaultValue = "20") long trabajoMs) {
+        return printCenterService.run(documentos, omitir, timeoutMs, trabajoMs);
     }
 }

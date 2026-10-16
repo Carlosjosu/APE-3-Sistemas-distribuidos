@@ -14,6 +14,12 @@ function App() {
     justo: true,
     control: true,
   });
+  const [printParams, setPrintParams] = useState({
+    documentos: 3,
+    omitir: 'NINGUNO',
+    timeoutMs: 250,
+    trabajoMs: 20,
+  });
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const activeExercise = exercises.find(({ id }) => id === activeId);
@@ -35,6 +41,10 @@ function App() {
   function updateBridgeParam(event) {
     const { name, type, checked, value } = event.target;
     setBridgeParams({ ...bridgeParams, [name]: type === 'checkbox' ? checked : value });
+  }
+
+  function updatePrintParam(event) {
+    setPrintParams({ ...printParams, [event.target.name]: event.target.value });
   }
 
   async function runParking() {
@@ -74,6 +84,21 @@ function App() {
     try {
       const query = new URLSearchParams(bridgeParams);
       const response = await fetch(`/api/ejercicios/4/puente?${query}`);
+      if (!response.ok) {
+        throw new Error(`El servidor respondió con ${response.status}.`);
+      }
+      setResult(await response.json());
+    } catch (requestError) {
+      setError(`No se pudo ejecutar la simulación: ${requestError.message}`);
+    }
+  }
+
+  async function runPrintCenter() {
+    setError('');
+    setResult(null);
+    try {
+      const query = new URLSearchParams(printParams);
+      const response = await fetch(`/api/ejercicios/5/impresion?${query}`);
       if (!response.ok) {
         throw new Error(`El servidor respondió con ${response.status}.`);
       }
@@ -186,6 +211,36 @@ function App() {
             <button className="primary" onClick={runBridge}>Ejecutar simulación</button>
             {error && <p className="error" role="alert">{error}</p>}
             {result && <BridgeResult result={result} />}
+          </>
+        ) : activeId === 5 ? (
+          <>
+            <p>Los documentos pasan por diseño, revisión e impresión en ese orden. Omite una señal para observar cómo se interrumpe el relevo.</p>
+            <div className="form-grid">
+              <label>
+                Documentos
+                <input name="documentos" type="number" min="1" value={printParams.documentos} onChange={updatePrintParam} />
+              </label>
+              <label>
+                Señal a omitir
+                <select name="omitir" value={printParams.omitir} onChange={updatePrintParam}>
+                  <option value="NINGUNO">Ninguna (secuencia correcta)</option>
+                  <option value="REVISION">Diseño → revisión</option>
+                  <option value="IMPRESION">Revisión → impresión</option>
+                  <option value="DISENO">Impresión → diseño</option>
+                </select>
+              </label>
+              <label>
+                Tiempo de espera (ms)
+                <input name="timeoutMs" type="number" min="1" value={printParams.timeoutMs} onChange={updatePrintParam} />
+              </label>
+              <label>
+                Trabajo por etapa (ms)
+                <input name="trabajoMs" type="number" min="0" value={printParams.trabajoMs} onChange={updatePrintParam} />
+              </label>
+            </div>
+            <button className="primary" onClick={runPrintCenter}>Ejecutar centro de impresión</button>
+            {error && <p className="error" role="alert">{error}</p>}
+            {result && <PrintCenterResult result={result} />}
           </>
         ) : (
           <div className="assignment-space">
@@ -305,6 +360,44 @@ function BridgeResult({ result }) {
               <span className="event-marker">{index + 1}</span>
               <div className="event-content">
                 <div className="event-meta"><span className="event-thread">{event.thread}</span><time dateTime={event.timestamp}>{formatEventTime(event.timestamp)}</time></div>
+                <p>{event.message}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </details>
+    </div>
+  );
+}
+
+function PrintCenterResult({ result }) {
+  return (
+    <div className="simulation-result">
+      <div className={result.verified ? 'verdict success' : 'verdict failure'}>
+        {result.verified ? 'Relevo completado' : 'Relevo interrumpido'}
+      </div>
+      <p>{result.summary}</p>
+      <dl className="metrics">
+        <div><dt>Señal omitida</dt><dd>{result.metrics.signalOmitido}</dd></div>
+        <div><dt>Etapas ejecutadas</dt><dd>{result.metrics.etapasEjecutadas} / {result.metrics.etapasEsperadas}</dd></div>
+        <div><dt>Hilos bloqueados</dt><dd>{result.metrics.hilosBloqueados}</dd></div>
+        <div><dt>Documentos</dt><dd>{result.metrics.documentos}</dd></div>
+      </dl>
+      <section className="analysis">
+        <h3>Orden observado</h3>
+        <p className="observed-order">{result.metrics.ordenObservado || 'No se completó ninguna etapa.'}</p>
+      </section>
+      <details className="log-details">
+        <summary><span>Bitácora de ejecución</span><span className="event-count">{result.events.length} eventos</span></summary>
+        <ol className="events">
+          {result.events.map((event, index) => (
+            <li className="event-item" key={`${event.timestamp}-${index}`}>
+              <span className="event-marker">{index + 1}</span>
+              <div className="event-content">
+                <div className="event-meta">
+                  <span className="event-thread">{event.thread}</span>
+                  <time dateTime={event.timestamp}>{formatEventTime(event.timestamp)}</time>
+                </div>
                 <p>{event.message}</p>
               </div>
             </li>

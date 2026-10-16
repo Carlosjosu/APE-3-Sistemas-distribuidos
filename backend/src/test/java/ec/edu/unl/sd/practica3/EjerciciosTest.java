@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import ec.edu.unl.sd.practica3.api.EjerciciosController;
 import ec.edu.unl.sd.practica3.estacionamiento.ParkingService;
+import ec.edu.unl.sd.practica3.impresion.PrintCenterService.SignalOmitido;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,7 +24,7 @@ class EjerciciosTest {
         assertThat(controller.cajero().verified()).isTrue();
         assertThat(controller.productorConsumidor(5, 0).verified()).isTrue();
         assertThat(controller.puente(6, 6, 40, 10, true, 3, true).verified()).isTrue();      
-        assertThat(controller.impresion().verified()).isTrue();
+        assertThat(controller.impresion(3, SignalOmitido.NINGUNO, 100, 0).verified()).isTrue();
     }
 
     @Test
@@ -112,6 +114,49 @@ class EjerciciosTest {
         assertThatThrownBy(() -> controller.puente(0, 0, 40, 10, true, 3, true))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> controller.puente(2, 2, 0, 10, true, 3, true))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void impresionRespetaElOrden() {
+        var result = controller.impresion(3, SignalOmitido.NINGUNO, 100, 1);
+
+        assertThat(result.verified()).isTrue();
+        assertThat(result.metrics())
+                .containsEntry("documentos", 3)
+                .containsEntry("signalOmitido", "NINGUNO")
+                .containsEntry("etapasEsperadas", 9)
+                .containsEntry("etapasEjecutadas", 9)
+                .containsEntry("hilosBloqueados", 0)
+                .containsEntry("ordenObservado", "D1 R1 I1 D2 R2 I2 D3 R3 I3");
+    }
+
+    @Test
+    void omitirUnSignalBloqueaElCiclo() {
+        for (SignalOmitido signal : List.of(
+                SignalOmitido.REVISION,
+                SignalOmitido.IMPRESION,
+                SignalOmitido.DISENO)) {
+            var result = controller.impresion(3, signal, 50, 1);
+
+            assertThat(result.verified()).as("signal omitido: %s", signal).isFalse();
+            assertThat(result.metrics())
+                    .as("signal omitido: %s", signal)
+                    .containsEntry("signalOmitido", signal.name())
+                    .containsEntry("hilosBloqueados", 3);
+            assertThat((int) result.metrics().get("etapasEjecutadas"))
+                    .as("signal omitido: %s", signal)
+                    .isLessThan(9);
+        }
+    }
+
+    @Test
+    void impresionRechazaParametrosInvalidos() {
+        assertThatThrownBy(() -> controller.impresion(0, SignalOmitido.NINGUNO, 50, 1))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> controller.impresion(3, SignalOmitido.NINGUNO, 0, 1))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> controller.impresion(3, SignalOmitido.NINGUNO, 50, -1))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }
